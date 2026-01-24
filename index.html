@@ -4,773 +4,892 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Language Level Assessment</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <!-- docx library for Word export -->
     <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #fef6f0 0%, #f0f4ff 100%);
-            min-height: 100vh;
-        }
-
-        .main-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        .sidebar {
-            width: 260px;
-            background: white;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-            padding: 30px 20px;
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-        }
-
-        .sidebar h2 {
-            color: #2c3e50;
-            margin-bottom: 25px;
-            font-size: 1.3em;
-        }
-
-        .sidebar-item {
-            padding: 15px 20px;
-            margin: 10px 0;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: #f8f9fa;
-            border-left: 4px solid transparent;
-        }
-
-        .sidebar-item:hover {
-            background: #fff5f0;
-            border-left-color: #ff8c00;
-            transform: translateX(5px);
-        }
-
-        .sidebar-item.active {
-            background: linear-gradient(135deg, #fff5f0 0%, #f0f7ff 100%);
-            border-left-color: #3498db;
-            font-weight: 600;
-        }
-
-        .sidebar-item.completed {
-            background: #e8f5e9;
-            border-left-color: #4caf50;
-        }
-
-        .content {
-            margin-left: 260px;
-            padding: 40px;
-            flex: 1;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            padding: 40px;
-        }
-
-        h1 {
-            color: #2c3e50;
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-        }
-
-        .subtitle {
-            text-align: center;
-            color: #7f8c8d;
-            margin-bottom: 40px;
-            font-size: 1.1em;
-        }
-
-        .section {
-            display: none;
-        }
-
-        .section.active {
-            display: block;
-            animation: fadeIn 0.5s;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .level-selector {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 30px auto;
-            max-width: 900px;
-        }
-
-        .variant-selector {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            margin: 30px auto;
-            max-width: 600px;
-        }
-
-        .card {
-            background: linear-gradient(135deg, #fff5f0 0%, #f0f7ff 100%);
-            border: 2px solid #e0e0e0;
-            border-radius: 15px;
-            padding: 30px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-align: center;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(255, 140, 0, 0.2);
-            border-color: #ff8c00;
-        }
-
-        .card h3 {
-            color: #2c3e50;
-            margin-bottom: 10px;
-            font-size: 1.5em;
-        }
-
-        .card p {
-            color: #7f8c8d;
-            line-height: 1.6;
-        }
-
-        .question {
-            background: #fafafa;
-            padding: 25px;
-            border-radius: 12px;
-            margin: 20px 0;
-            border-left: 4px solid #ff8c00;
-        }
-
-        .question h4 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            font-size: 1.1em;
-        }
-
-        .question-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 15px;
-        }
-
-        .question-header h4 {
-            margin-bottom: 0;
-        }
-
-        .hint-btn {
-            background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
-            border: 1px solid #ffc107;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            cursor: pointer;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-            flex-shrink: 0;
-        }
-
-        .hint-btn:hover {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
-            transform: scale(1.1);
-            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4);
-        }
-
-        .answer-key {
-            display: none;
-            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-            border: 1px solid #4caf50;
-            border-radius: 8px;
-            padding: 12px 15px;
-            margin-top: 15px;
-            color: #2e7d32;
-            font-weight: 500;
-        }
-
-        .answer-key.show {
-            display: block;
-            animation: fadeIn 0.3s;
-        }
-
-        .options {
-            margin-top: 15px;
-        }
-
-        .option {
-            display: block;
-            margin: 10px 0;
-        }
-
-        .option input {
-            margin-right: 10px;
-        }
-
-        .option label {
-            cursor: pointer;
-            color: #34495e;
-        }
-
-        textarea, input[type="text"] {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 1em;
-            font-family: inherit;
-            margin-top: 10px;
-            resize: vertical;
-        }
-
-        textarea:focus, input[type="text"]:focus {
-            outline: none;
-            border-color: #ff8c00;
-        }
-
-        .media-container {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-        }
-
-        .audio-player, .video-player {
-            width: 100%;
-            max-width: 100%;
-            border-radius: 10px;
-            margin-top: 10px;
-        }
-
-        .chart-image {
-            max-width: 100%;
-            height: auto;
-            border-radius: 10px;
-            margin: 20px 0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .reading-text {
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            line-height: 1.8;
-            margin: 20px 0;
-            border: 2px solid #e0e0e0;
-        }
-
-        .cue-card {
-            background: linear-gradient(135deg, #fff9e6 0%, #ffe6f0 100%);
-            padding: 25px;
-            border-radius: 12px;
-            margin: 20px 0;
-            border: 2px dashed #ff8c00;
-        }
-
-        .timer {
-            background: #ff8c00;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            display: inline-block;
-            margin: 10px 0;
-            font-weight: bold;
-        }
-
-        .results {
-            background: #f8f9fa;
-            padding: 30px;
-            border-radius: 15px;
-            margin: 20px 0;
-        }
-
-        .result-section {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 15px 0;
-            border-left: 4px solid #3498db;
-        }
-
-        .result-section h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-        }
-
-        .score {
-            font-size: 2em;
-            font-weight: bold;
-            color: #ff8c00;
-            margin: 10px 0;
-        }
-
-        .recommendation {
-            background: #fff3e0;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-            color: #e65100;
-        }
-
-        .grammar-topic {
-            background: #e3f2fd;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 8px 0;
-            color: #1565c0;
-            border-left: 3px solid #2196f3;
-        }
-
-        .nav-btn {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: all 0.3s;
-            margin-top: 20px;
-        }
-
-        .nav-btn:hover {
-            background: #2980b9;
-            transform: scale(1.05);
-        }
-
-        .nav-btn.primary {
-            background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%);
-        }
-
-        .nav-btn.primary:hover {
-            background: linear-gradient(135deg, #ff6b00 0%, #ff4500 100%);
-        }
-
-        .instruction-note {
-            background: #e8f5e9;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            color: #2e7d32;
-            border-left: 4px solid #4caf50;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #fef6f0 0%, #f0f4ff 100%); min-height: 100vh; }
+        
+        /* Loading Overlay */
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
+        .loading-spinner { width: 50px; height: 50px; border: 4px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { margin-top: 16px; color: #64748b; font-size: 16px; }
+        .connection-status { position: fixed; bottom: 20px; right: 20px; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 1000; }
+        .connection-status.online { background: #dcfce7; color: #166534; }
+        .connection-status.offline { background: #fee2e2; color: #dc2626; }
+        
+        /* Top Navigation */
+        .top-nav { background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        .top-nav .logo { display: flex; align-items: center; gap: 10px; font-size: 1.4em; font-weight: 700; color: #2c3e50; }
+        .top-nav .nav-links { display: flex; gap: 8px; }
+        .top-nav .nav-link { padding: 10px 20px; border: none; background: transparent; border-radius: 8px; cursor: pointer; font-size: 0.95em; color: #64748b; transition: all 0.3s; display: flex; align-items: center; gap: 6px; }
+        .top-nav .nav-link:hover { background: #f1f5f9; }
+        .top-nav .nav-link.active { background: #eff6ff; color: #3b82f6; font-weight: 600; }
+        
+        /* Notification */
+        .notification { position: fixed; top: 80px; right: 20px; padding: 14px 28px; border-radius: 10px; color: white; font-weight: 500; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 2000; animation: slideIn 0.3s ease; display: none; }
+        .notification.success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .notification.error { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .notification.show { display: block; }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        /* Layout */
+        .main-container { display: flex; min-height: calc(100vh - 60px); }
+        .sidebar { width: 260px; background: white; box-shadow: 2px 0 10px rgba(0,0,0,0.1); padding: 30px 20px; position: fixed; height: calc(100vh - 60px); overflow-y: auto; top: 60px; }
+        .sidebar h2 { color: #2c3e50; margin-bottom: 25px; font-size: 1.3em; }
+        .sidebar-item { padding: 15px 20px; margin: 10px 0; border-radius: 10px; cursor: pointer; transition: all 0.3s; background: #f8f9fa; border-left: 4px solid transparent; }
+        .sidebar-item:hover { background: #fff5f0; border-left-color: #ff8c00; transform: translateX(5px); }
+        .sidebar-item.active { background: linear-gradient(135deg, #fff5f0 0%, #f0f7ff 100%); border-left-color: #3498db; font-weight: 600; }
+        .sidebar-item.completed { background: #e8f5e9; border-left-color: #4caf50; }
+        .content { margin-left: 260px; padding: 40px; flex: 1; }
+        .content.full-width { margin-left: 0; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); padding: 40px; }
+        .container.wide { max-width: 1200px; }
+        h1 { color: #2c3e50; text-align: center; margin-bottom: 10px; font-size: 2.5em; }
+        .subtitle { text-align: center; color: #7f8c8d; margin-bottom: 40px; font-size: 1.1em; }
+        
+        /* Dashboard */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid; }
+        .stat-card .icon { font-size: 28px; margin-bottom: 10px; }
+        .stat-card .value { font-size: 32px; font-weight: 700; }
+        .stat-card .label { color: #64748b; font-size: 14px; margin-top: 4px; }
+        .quick-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 30px; }
+        .action-btn { padding: 20px 24px; border: none; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 600; color: white; display: flex; align-items: center; gap: 12px; transition: all 0.3s; }
+        .action-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .action-btn.blue { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+        .action-btn.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .action-btn.orange { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .dashboard-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .dashboard-card h3 { font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 16px; }
+        .lesson-item, .assessment-item { padding: 16px; background: #f8fafc; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .item-info .name { font-weight: 600; color: #1e293b; }
+        .item-info .details { font-size: 14px; color: #64748b; margin-top: 4px; }
+        .score-badge { padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: 14px; }
+        .score-badge.high { background: #dcfce7; color: #166534; }
+        .score-badge.medium { background: #fef3c7; color: #92400e; }
+        .score-badge.low { background: #fee2e2; color: #dc2626; }
+        
+        /* Forms & Buttons */
+        .view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .view-header h2 { font-size: 28px; font-weight: 700; color: #1e293b; }
+        .form-card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .form-input, .form-select, .form-textarea { padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 16px; font-family: inherit; transition: border-color 0.3s; width: 100%; }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #3b82f6; }
+        .form-textarea { resize: vertical; min-height: 80px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; transition: all 0.3s; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: #fee2e2; color: #dc2626; }
+        .btn-danger:hover { background: #fecaca; }
+        .btn-secondary { background: #f1f5f9; color: #64748b; }
+        .btn-secondary:hover { background: #e2e8f0; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .lesson-card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #3b82f6; }
+        .lesson-card.completed { border-left-color: #10b981; }
+        .lesson-card.cancelled { border-left-color: #ef4444; }
+        .lesson-actions { display: flex; gap: 8px; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+        
+        /* Calendar */
+        .instructions-box { background: #f0fdf4; border: 2px solid #86efac; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+        .instructions-box h4 { color: #166534; margin-bottom: 12px; }
+        .instructions-box ol { color: #15803d; margin-left: 20px; line-height: 1.8; }
+        .ics-textarea { width: 100%; height: 200px; padding: 16px; border: 2px solid #e2e8f0; border-radius: 12px; font-family: 'Consolas', monospace; font-size: 13px; resize: vertical; }
+        .events-list { max-height: 400px; overflow-y: auto; margin-top: 20px; }
+        .event-card { padding: 16px; background: #f8fafc; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* Current Lesson Banner */
+        .current-lesson-banner { background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%); border: 2px solid #3b82f6; border-radius: 12px; padding: 16px 24px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .current-lesson-banner .info { display: flex; align-items: center; gap: 12px; }
+        .current-lesson-banner .icon { font-size: 24px; }
+        .current-lesson-banner .text strong { color: #1e40af; display: block; }
+        .current-lesson-banner .text span { color: #3b82f6; font-size: 14px; }
+        
+        /* Test Sections */
+        .section { display: none; }
+        .section.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .level-selector { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 30px auto; max-width: 900px; }
+        .variant-selector { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 30px auto; max-width: 600px; }
+        .card { background: linear-gradient(135deg, #fff5f0 0%, #f0f7ff 100%); border: 2px solid #e0e0e0; border-radius: 15px; padding: 30px; cursor: pointer; transition: all 0.3s; text-align: center; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(255, 140, 0, 0.2); border-color: #ff8c00; }
+        .card h3 { color: #2c3e50; margin-bottom: 10px; font-size: 1.5em; }
+        .card p { color: #7f8c8d; line-height: 1.6; }
+        .question { background: #fafafa; padding: 25px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #ff8c00; }
+        .question h4 { color: #2c3e50; margin-bottom: 15px; font-size: 1.1em; }
+        .question-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .question-header h4 { margin-bottom: 0; }
+        .hint-btn { background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%); border: 1px solid #ffc107; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all 0.3s; flex-shrink: 0; }
+        .hint-btn:hover { background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%); transform: scale(1.1); box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4); }
+        .answer-key { display: none; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border: 1px solid #4caf50; border-radius: 8px; padding: 12px 15px; margin-top: 15px; color: #2e7d32; font-weight: 500; }
+        .answer-key.show { display: block; animation: fadeIn 0.3s; }
+        .options { margin-top: 15px; }
+        .option { display: block; margin: 10px 0; }
+        .option input { margin-right: 10px; }
+        .option label { cursor: pointer; color: #34495e; }
+        textarea, input[type="text"] { width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1em; font-family: inherit; margin-top: 10px; resize: vertical; }
+        textarea:focus, input[type="text"]:focus { outline: none; border-color: #ff8c00; }
+        .media-container { background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; }
+        .audio-player, .video-player { width: 100%; max-width: 100%; border-radius: 10px; margin-top: 10px; }
+        .chart-image { max-width: 100%; height: auto; border-radius: 10px; margin: 20px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .reading-text { background: white; padding: 25px; border-radius: 10px; line-height: 1.8; margin: 20px 0; border: 2px solid #e0e0e0; }
+        .cue-card { background: linear-gradient(135deg, #fff9e6 0%, #ffe6f0 100%); padding: 25px; border-radius: 12px; margin: 20px 0; border: 2px dashed #ff8c00; }
+        .results { background: #f8f9fa; padding: 30px; border-radius: 15px; margin: 20px 0; }
+        .result-section { background: white; padding: 20px; border-radius: 10px; margin: 15px 0; border-left: 4px solid #3498db; }
+        .result-section h3 { color: #2c3e50; margin-bottom: 15px; }
+        .score { font-size: 2em; font-weight: bold; color: #ff8c00; margin: 10px 0; }
+        .recommendation { background: #fff3e0; padding: 15px; border-radius: 8px; margin: 10px 0; color: #e65100; }
+        .grammar-topic { background: #e3f2fd; padding: 12px; border-radius: 8px; margin: 8px 0; color: #1565c0; border-left: 3px solid #2196f3; }
+        .nav-btn { background: #3498db; color: white; border: none; padding: 12px 30px; border-radius: 25px; cursor: pointer; font-size: 1em; transition: all 0.3s; margin-top: 20px; }
+        .nav-btn:hover { background: #2980b9; transform: scale(1.05); }
+        .nav-btn.primary { background: linear-gradient(135deg, #ff8c00 0%, #ff6b00 100%); }
+        .nav-btn.primary:hover { background: linear-gradient(135deg, #ff6b00 0%, #ff4500 100%); }
+        .instruction-note { background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 15px 0; color: #2e7d32; border-left: 4px solid #4caf50; }
+        .show-answers-btn { background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); color: white; border: none; padding: 12px 25px; border-radius: 25px; cursor: pointer; font-size: 1em; transition: all 0.3s; margin: 20px 0; display: inline-flex; align-items: center; gap: 8px; }
+        .show-answers-btn:hover { background: linear-gradient(135deg, #7b1fa2 0%, #6a1b9a 100%); transform: scale(1.05); }
+        .show-answers-btn.active { background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); }
+        .option.correct-answer { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-radius: 8px; padding: 8px 12px; margin: 5px 0; border-left: 4px solid #4caf50; }
+        .option.wrong-answer { background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%); border-radius: 8px; padding: 8px 12px; margin: 5px 0; border-left: 4px solid #f44336; }
+        .answer-indicator { font-size: 0.85em; margin-left: 10px; font-weight: bold; }
+        .answer-indicator.correct { color: #2e7d32; }
+        .answer-indicator.wrong { color: #c62828; }
+        .input-answer-display { margin-top: 10px; padding: 12px; border-radius: 8px; display: none; }
+        .input-answer-display.show { display: block; }
+        .input-answer-display.correct { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-left: 4px solid #4caf50; color: #2e7d32; }
+        .input-answer-display.wrong { background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%); border-left: 4px solid #f44336; color: #c62828; }
+        .writing-answer-btn { background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 0.95em; transition: all 0.3s; margin-top: 15px; }
+        .writing-answer-container { display: none; margin-top: 15px; padding: 20px; background: #fafafa; border-radius: 10px; border: 2px solid #e0e0e0; }
+        .writing-answer-container.show { display: block; }
+        .export-section { background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); padding: 25px; border-radius: 15px; margin-bottom: 30px; border: 2px solid #7c4dff; }
+        .export-fields { display: grid; gap: 15px; margin-bottom: 20px; }
+        .field-group { display: flex; flex-direction: column; gap: 5px; }
+        .field-group label { font-weight: 600; color: #2c3e50; font-size: 0.95em; }
+        .export-btn { background: linear-gradient(135deg, #7c4dff 0%, #651fff 100%); color: white; border: none; padding: 15px 30px; border-radius: 25px; cursor: pointer; font-size: 1.1em; font-weight: 600; transition: all 0.3s; }
+        .export-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(124, 77, 255, 0.4); }
+        .export-btn:disabled { background: #bdbdbd; cursor: not-allowed; }
+        .save-db-btn { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 15px 30px; border-radius: 25px; cursor: pointer; font-size: 1.1em; font-weight: 600; transition: all 0.3s; margin-left: 15px; }
+        .save-db-btn:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(16, 185, 129, 0.4); }
+        .match-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px; }
+        .match-item { padding: 12px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; }
+        
         @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                position: relative;
-                height: auto;
-            }
-            
-            .content {
-                margin-left: 0;
-                padding: 20px;
-            }
-            
-            .container {
-                padding: 20px;
-            }
-            
-            h1 {
-                font-size: 1.8em;
-            }
-
-            .level-selector, .variant-selector {
-                grid-template-columns: 1fr;
-            }
-
-            .main-container {
-                flex-direction: column;
-            }
-        }
-
-        .match-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-top: 15px;
-        }
-
-        .match-item {
-            padding: 12px;
-            background: white;
-            border-radius: 8px;
-            border: 2px solid #e0e0e0;
-        }
-
-        .show-answers-btn {
-            background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: all 0.3s;
-            margin: 20px 0;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .show-answers-btn:hover {
-            background: linear-gradient(135deg, #7b1fa2 0%, #6a1b9a 100%);
-            transform: scale(1.05);
-        }
-
-        .show-answers-btn.active {
-            background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
-        }
-
-        .option.correct-answer {
-            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-            border-radius: 8px;
-            padding: 8px 12px;
-            margin: 5px 0;
-            border-left: 4px solid #4caf50;
-        }
-
-        .option.wrong-answer {
-            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
-            border-radius: 8px;
-            padding: 8px 12px;
-            margin: 5px 0;
-            border-left: 4px solid #f44336;
-        }
-
-        .option.correct-answer label,
-        .option.wrong-answer label {
-            font-weight: 600;
-        }
-
-        .answer-indicator {
-            font-size: 0.85em;
-            margin-left: 10px;
-            font-weight: bold;
-        }
-
-        .answer-indicator.correct {
-            color: #2e7d32;
-        }
-
-        .answer-indicator.wrong {
-            color: #c62828;
-        }
-
-        .input-answer-display {
-            margin-top: 10px;
-            padding: 12px;
-            border-radius: 8px;
-            display: none;
-        }
-
-        .input-answer-display.show {
-            display: block;
-        }
-
-        .input-answer-display.correct {
-            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-            border-left: 4px solid #4caf50;
-            color: #2e7d32;
-        }
-
-        .input-answer-display.wrong {
-            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
-            border-left: 4px solid #f44336;
-            color: #c62828;
-        }
-
-        .writing-answer-btn {
-            background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.95em;
-            transition: all 0.3s;
-            margin-top: 15px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .writing-answer-btn:hover {
-            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-            transform: scale(1.05);
-        }
-
-        .writing-answer-container {
-            display: none;
-            margin-top: 15px;
-            padding: 20px;
-            background: #fafafa;
-            border-radius: 10px;
-            border: 2px solid #e0e0e0;
-        }
-
-        .writing-answer-container.show {
-            display: block;
-            animation: fadeIn 0.3s;
-        }
-
-        .writing-answer-container h4 {
-            color: #2c3e50;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #2196f3;
-            padding-bottom: 8px;
-        }
-
-        .writing-answer-container pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            font-family: inherit;
-            line-height: 1.6;
-            color: #34495e;
-        }
-
-        .copy-btn {
-            background: #607d8b;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 15px;
-            cursor: pointer;
-            font-size: 0.85em;
-            margin-left: 10px;
-            transition: all 0.3s;
-        }
-
-        .copy-btn:hover {
-            background: #455a64;
-        }
-
-        .copy-btn.copied {
-            background: #4caf50;
-        }
-
-        .export-section {
-            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            border: 2px solid #7c4dff;
-        }
-
-        .export-fields {
-            display: grid;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .field-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .field-group label {
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 0.95em;
-        }
-
-        .field-group input,
-        .field-group textarea {
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 1em;
-            font-family: inherit;
-            transition: border-color 0.3s;
-        }
-
-        .field-group input:focus,
-        .field-group textarea:focus {
-            outline: none;
-            border-color: #7c4dff;
-        }
-
-        .export-btn {
-            background: linear-gradient(135deg, #7c4dff 0%, #651fff 100%);
-            color: white;
-            border: none;
-            padding: 14px 30px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1.1em;
-            font-weight: 600;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .export-btn:hover {
-            background: linear-gradient(135deg, #651fff 0%, #5e35b1 100%);
-            transform: scale(1.05);
-            box-shadow: 0 5px 20px rgba(124, 77, 255, 0.4);
-        }
-
-        .export-btn:disabled {
-            background: #bdbdbd;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+            .sidebar { width: 100%; position: relative; height: auto; top: 0; }
+            .content { margin-left: 0; padding: 20px; }
+            h1 { font-size: 1.8em; }
+            .level-selector, .variant-selector { grid-template-columns: 1fr; }
+            .main-container { flex-direction: column; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .quick-actions, .dashboard-grid, .form-grid { grid-template-columns: 1fr; }
+            .top-nav { flex-direction: column; gap: 10px; }
+            .top-nav .nav-links { flex-wrap: wrap; justify-content: center; }
         }
     </style>
 </head>
 <body>
-    <div id="initialScreens">
-        <div class="content" style="margin-left: 0;">
-            <div class="container">
-                <h1>Language Level Assessment</h1>
-                <p class="subtitle">Comprehensive English Proficiency Test</p>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Connecting to database...</div>
+    </div>
 
-                <!-- Level Selection -->
-                <div id="levelSelection" class="section active">
-                    <h2 style="color: #2c3e50; margin-bottom: 20px;">Choose Your Level</h2>
-                    <div class="level-selector">
-                        <div class="card" onclick="selectLevel('A0')">
-                            <h3>A0 - Beginner</h3>
-                            <p>Just starting your English journey. Basic vocabulary and simple sentences.</p>
-                        </div>
-                        <div class="card" onclick="selectLevel('B1/B2')">
-                            <h3>B1/B2 - Intermediate</h3>
-                            <p>Can handle everyday situations. Growing vocabulary and complex sentences.</p>
-                        </div>
-                        <div class="card" onclick="selectLevel('IELTS')">
-                            <h3>IELTS - Advanced</h3>
-                            <p>Preparing for IELTS or advanced English proficiency. Complex topics and academic English.</p>
-                        </div>
+    <!-- Connection Status -->
+    <div class="connection-status online" id="connectionStatus">🟢 Connected</div>
+
+    <!-- Top Navigation -->
+    <nav class="top-nav" id="topNav">
+        <div class="logo"><span>📚</span><span>Language Assessment</span></div>
+        <div class="nav-links">
+            <button class="nav-link active" onclick="showView('dashboard')" data-view="dashboard">🏠 Dashboard</button>
+            <button class="nav-link" onclick="showView('lessons')" data-view="lessons">📅 Lessons</button>
+            <button class="nav-link" onclick="showView('history')" data-view="history">📊 History</button>
+            <button class="nav-link" onclick="showView('calendar')" data-view="calendar">📆 Calendar</button>
+        </div>
+    </nav>
+    <div class="notification" id="notification"></div>
+
+    <!-- Dashboard View -->
+    <div id="dashboardView" class="view-container">
+        <div class="content full-width">
+            <div class="container wide">
+                <h1>📊 Dashboard</h1>
+                <p class="subtitle">Manage lessons, track progress, and view assessment history • <span style="color:#10b981">☁️ Cloud Synced</span></p>
+                <div class="stats-grid" id="statsGrid"></div>
+                <div class="quick-actions">
+                    <button class="action-btn blue" onclick="showView('lessons')"><span style="font-size:24px">➕</span> New Lesson</button>
+                    <button class="action-btn green" onclick="showView('calendar')"><span style="font-size:24px">📆</span> Import Calendar</button>
+                    <button class="action-btn orange" onclick="startQuickAssessment()"><span style="font-size:24px">📝</span> Quick Assessment</button>
+                </div>
+                <div class="dashboard-grid">
+                    <div class="dashboard-card"><h3>📅 Upcoming Lessons</h3><div id="upcomingLessons"></div></div>
+                    <div class="dashboard-card"><h3>📊 Recent Assessments</h3><div id="recentAssessments"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lessons View -->
+    <div id="lessonsView" class="view-container" style="display:none">
+        <div class="content full-width">
+            <div class="container wide">
+                <div class="view-header"><h2>📅 Lessons</h2><button class="btn btn-primary" onclick="toggleLessonForm()">+ Add Lesson</button></div>
+                <div class="form-card" id="lessonForm" style="display:none">
+                    <h3 style="margin-bottom:16px;color:#1e293b">Create New Lesson</h3>
+                    <div class="form-grid">
+                        <input type="text" class="form-input" id="newStudentName" placeholder="Student Name *">
+                        <input type="datetime-local" class="form-input" id="newDateTime">
+                        <select class="form-select" id="newLevel"><option value="">Select Level</option><option value="A0">A0 - Beginner</option><option value="B1/B2">B1/B2 - Intermediate</option><option value="IELTS">IELTS - Advanced</option></select>
+                        <input type="number" class="form-input" id="newDuration" placeholder="Duration (minutes)" value="60">
+                    </div>
+                    <textarea class="form-textarea" id="newNotes" placeholder="Notes (optional)" style="margin-top:16px"></textarea>
+                    <div style="margin-top:16px;display:flex;gap:12px">
+                        <button class="btn btn-success" onclick="createLesson()">Create Lesson</button>
+                        <button class="btn btn-secondary" onclick="toggleLessonForm()">Cancel</button>
                     </div>
                 </div>
+                <div id="lessonsList"></div>
+            </div>
+        </div>
+    </div>
 
-                <!-- Variant Selection -->
-                <div id="variantSelection" class="section">
-                    <h2 style="color: #2c3e50; margin-bottom: 20px;">Choose Practice Variant</h2>
-                    <div class="variant-selector">
-                        <div class="card" onclick="selectVariant(1)">
-                            <h3>Variant 1</h3>
-                            <p>Complete practice test set</p>
+    <!-- History View -->
+    <div id="historyView" class="view-container" style="display:none">
+        <div class="content full-width">
+            <div class="container wide">
+                <div class="view-header"><h2>📊 Assessment History</h2></div>
+                <div id="historyList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Import View -->
+    <div id="calendarView" class="view-container" style="display:none">
+        <div class="content full-width">
+            <div class="container wide">
+                <h2 style="margin-bottom:8px;color:#1e293b">📆 Import from Google Calendar</h2>
+                <p style="color:#64748b;margin-bottom:24px">Export your Google Calendar as ICS and paste it below</p>
+                <div class="instructions-box">
+                    <h4>📋 How to export from Google Calendar:</h4>
+                    <ol>
+                        <li>Go to <strong>Google Calendar</strong> → Settings</li>
+                        <li>Click <strong>Import & export</strong></li>
+                        <li>Click <strong>Export</strong> to download .zip</li>
+                        <li>Extract and open .ics file in text editor</li>
+                        <li>Copy all content and paste below</li>
+                    </ol>
+                </div>
+                <div class="form-card">
+                    <textarea class="ics-textarea" id="icsContent" placeholder="Paste your ICS content here..."></textarea>
+                    <button class="btn btn-primary" onclick="parseICSContent()" style="margin-top:16px">🔍 Parse Calendar</button>
+                    <div id="parsedEvents" style="display:none">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:24px;margin-bottom:16px">
+                            <h3 id="eventsCount" style="color:#1e293b"></h3>
+                            <button class="btn btn-success" onclick="createAllLessonsFromEvents()">✅ Create All as Lessons</button>
                         </div>
-                        <div class="card" onclick="selectVariant(2)">
-                            <h3>Variant 2</h3>
-                            <p>Complete practice test set</p>
-                        </div>
-                        <div class="card" onclick="selectVariant(3)">
-                            <h3>Variant 3</h3>
-                            <p>Complete practice test set</p>
-                        </div>
-                        <div class="card" onclick="selectVariant(4)">
-                            <h3>Variant 4</h3>
-                            <p>Complete practice test set</p>
-                        </div>
+                        <div class="events-list" id="eventsList"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="testInterface" class="main-container" style="display: none;">
-        <!-- Sidebar -->
+    <!-- Initial Screens -->
+    <div id="initialScreens" style="display:none">
+        <div class="content full-width">
+            <div class="container">
+                <div class="current-lesson-banner" id="currentLessonBanner" style="display:none">
+                    <div class="info"><span class="icon">👤</span><div class="text"><strong id="bannerStudentName">Student</strong><span id="bannerLessonDetails">Details</span></div></div>
+                    <button class="btn btn-secondary" onclick="clearCurrentLesson()">Cancel</button>
+                </div>
+                <h1>Language Level Assessment</h1>
+                <p class="subtitle">Comprehensive English Proficiency Test</p>
+                <div id="levelSelection" class="section active">
+                    <h2 style="color:#2c3e50;margin-bottom:20px">Choose Your Level</h2>
+                    <div class="level-selector">
+                        <div class="card" onclick="selectLevel('A0')"><h3>🌱 A0 - Beginner</h3><p>Basic vocabulary and simple sentences</p></div>
+                        <div class="card" onclick="selectLevel('B1/B2')"><h3>📚 B1/B2 - Intermediate</h3><p>Everyday situations, complex sentences</p></div>
+                        <div class="card" onclick="selectLevel('IELTS')"><h3>🎓 IELTS - Advanced</h3><p>Academic English, complex topics</p></div>
+                    </div>
+                </div>
+                <div id="variantSelection" class="section">
+                    <h2 style="color:#2c3e50;margin-bottom:20px">Choose Practice Variant</h2>
+                    <div class="variant-selector">
+                        <div class="card" onclick="selectVariant(1)"><h3>Variant 1</h3><p>Complete test set</p></div>
+                        <div class="card" onclick="selectVariant(2)"><h3>Variant 2</h3><p>Complete test set</p></div>
+                        <div class="card" onclick="selectVariant(3)"><h3>Variant 3</h3><p>Complete test set</p></div>
+                        <div class="card" onclick="selectVariant(4)"><h3>Variant 4</h3><p>Complete test set</p></div>
+                    </div>
+                    <button class="nav-btn" onclick="backToLevelSelection()" style="background:#95a5a6">← Back</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Interface -->
+    <div id="testInterface" class="main-container" style="display:none">
         <div class="sidebar">
             <h2>Test Sections</h2>
-            <div class="sidebar-item" onclick="navigateToSection('Listening')" id="nav-Listening">
-                🎧 Listening
-            </div>
-            <div class="sidebar-item" onclick="navigateToSection('Reading')" id="nav-Reading">
-                📖 Reading
-            </div>
-            <div class="sidebar-item" onclick="navigateToSection('Writing')" id="nav-Writing">
-                ✍️ Writing
-            </div>
-            <div class="sidebar-item" onclick="navigateToSection('Speaking')" id="nav-Speaking">
-                🗣️ Speaking
-            </div>
-            <div class="sidebar-item" onclick="navigateToSection('Grammar')" id="nav-Grammar">
-                📝 Grammar
-            </div>
-            <button class="nav-btn primary" onclick="showResults()" style="width: 100%; margin-top: 30px;">
-                View Results
-            </button>
-            <button class="nav-btn" onclick="backToMainMenu()" style="width: 100%; margin-top: 10px; background: #95a5a6;">
-                🏠 Back to Menu
-            </button>
+            <div class="sidebar-item" onclick="navigateToSection('Listening')" id="nav-Listening">🎧 Listening</div>
+            <div class="sidebar-item" onclick="navigateToSection('Reading')" id="nav-Reading">📖 Reading</div>
+            <div class="sidebar-item" onclick="navigateToSection('Writing')" id="nav-Writing">✍️ Writing</div>
+            <div class="sidebar-item" onclick="navigateToSection('Speaking')" id="nav-Speaking">🗣️ Speaking</div>
+            <div class="sidebar-item" onclick="navigateToSection('Grammar')" id="nav-Grammar">📝 Grammar</div>
+            <button class="nav-btn primary" onclick="showResults()" style="width:100%;margin-top:30px">View Results</button>
+            <button class="nav-btn" onclick="backToMainMenu()" style="width:100%;margin-top:10px;background:#95a5a6">🏠 Back</button>
         </div>
-
-        <!-- Content -->
         <div class="content">
             <div class="container">
+                <div class="current-lesson-banner" id="testLessonBanner" style="display:none;margin-bottom:20px">
+                    <div class="info"><span class="icon">👤</span><div class="text"><strong id="testBannerName">Student</strong><span id="testBannerDetails">Details</span></div></div>
+                </div>
                 <div id="testContent"></div>
             </div>
         </div>
     </div>
 
-    <!-- Results -->
-    <div id="resultsInterface" style="display: none;">
-        <div class="content" style="margin-left: 0;">
+    <!-- Results Interface -->
+    <div id="resultsInterface" style="display:none">
+        <div class="content full-width">
             <div class="container">
                 <h1>Your Assessment Results</h1>
                 <p class="subtitle">Detailed Performance Analysis</p>
-                
-                <!-- Export Section -->
                 <div class="export-section">
-                    <h3 style="color: #2c3e50; margin-bottom: 15px;">📄 Export Results</h3>
+                    <h3 style="color:#2c3e50;margin-bottom:15px">📄 Export & Save Results</h3>
                     <div class="export-fields">
-                        <div class="field-group">
-                            <label for="studentName">Student Name:</label>
-                            <input type="text" id="studentName" placeholder="Enter student name...">
-                        </div>
-                        <div class="field-group">
-                            <label for="testDescription">Description / Notes:</label>
-                            <textarea id="testDescription" rows="3" placeholder="Add any notes or description..."></textarea>
-                        </div>
+                        <div class="field-group"><label for="studentName">Student Name:</label><input type="text" id="studentName" placeholder="Enter student name..."></div>
+                        <div class="field-group"><label for="testDescription">Notes:</label><textarea id="testDescription" rows="3" placeholder="Add notes..."></textarea></div>
                     </div>
-                    <button class="export-btn" onclick="exportToWord()">
-                        📥 Export to Word Document
-                    </button>
+                    <div style="display:flex;flex-wrap:wrap;gap:15px">
+                        <button class="export-btn" onclick="exportToWord()">📥 Export to Word</button>
+                        <button class="save-db-btn" onclick="saveResultToDatabase()">💾 Save to Cloud</button>
+                    </div>
                 </div>
-                
                 <div id="resultsContent"></div>
-                <button class="nav-btn primary" onclick="restartTest()">Take Another Test</button>
+                <div style="display:flex;gap:15px;margin-top:20px;flex-wrap:wrap">
+                    <button class="nav-btn primary" onclick="restartTest()">Take Another Test</button>
+                    <button class="nav-btn" onclick="showView('dashboard')" style="background:#3b82f6">🏠 Dashboard</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        // ============================================
+        // FIREBASE CONFIGURATION
+        // ============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgG6A2jm735kNCSUdB8-PJHLqO4LmXuK8",
+            authDomain: "language-assessment-ccd07.firebaseapp.com",
+            projectId: "language-assessment-ccd07",
+            storageBucket: "language-assessment-ccd07.firebasestorage.app",
+            messagingSenderId: "195576010412",
+            appId: "1:195576010412:web:b38f18754a1bb5e8aef109",
+            measurementId: "G-30XN8C3L8Q"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Collections references
+        const lessonsCollection = db.collection('lessons');
+        const assessmentsCollection = db.collection('assessments');
+
+        // ============================================
+        // GLOBAL STATE
+        // ============================================
         let selectedLevel = '';
         let selectedVariant = 0;
         let currentSection = 'Listening';
         let answers = {};
         let completedSections = new Set();
         const sections = ['Listening', 'Reading', 'Writing', 'Speaking', 'Grammar'];
+        let lessons = [];
+        let assessmentHistory = [];
+        let currentLesson = null;
+        let calendarEvents = [];
+        let isOnline = true;
 
+        // ============================================
+        // FIREBASE DATABASE FUNCTIONS
+        // ============================================
+        
+        // Load all lessons from Firebase
+        async function loadLessonsFromFirebase() {
+            try {
+                const snapshot = await lessonsCollection.orderBy('createdAt', 'desc').get();
+                lessons = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                console.log('Loaded', lessons.length, 'lessons from Firebase');
+            } catch (error) {
+                console.error('Error loading lessons:', error);
+                showNotification('Error loading lessons', 'error');
+            }
+        }
+
+        // Load all assessments from Firebase
+        async function loadAssessmentsFromFirebase() {
+            try {
+                const snapshot = await assessmentsCollection.orderBy('date', 'desc').get();
+                assessmentHistory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                console.log('Loaded', assessmentHistory.length, 'assessments from Firebase');
+            } catch (error) {
+                console.error('Error loading assessments:', error);
+                showNotification('Error loading assessments', 'error');
+            }
+        }
+
+        // Add a lesson to Firebase
+        async function addLessonToFirebase(lessonData) {
+            try {
+                const docRef = await lessonsCollection.add({
+                    ...lessonData,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                return docRef.id;
+            } catch (error) {
+                console.error('Error adding lesson:', error);
+                showNotification('Error saving lesson', 'error');
+                return null;
+            }
+        }
+
+        // Update a lesson in Firebase
+        async function updateLessonInFirebase(lessonId, updates) {
+            try {
+                await lessonsCollection.doc(lessonId).update(updates);
+                return true;
+            } catch (error) {
+                console.error('Error updating lesson:', error);
+                showNotification('Error updating lesson', 'error');
+                return false;
+            }
+        }
+
+        // Delete a lesson from Firebase
+        async function deleteLessonFromFirebase(lessonId) {
+            try {
+                await lessonsCollection.doc(lessonId).delete();
+                return true;
+            } catch (error) {
+                console.error('Error deleting lesson:', error);
+                showNotification('Error deleting lesson', 'error');
+                return false;
+            }
+        }
+
+        // Add an assessment to Firebase
+        async function addAssessmentToFirebase(assessmentData) {
+            try {
+                const docRef = await assessmentsCollection.add({
+                    ...assessmentData,
+                    date: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                return docRef.id;
+            } catch (error) {
+                console.error('Error adding assessment:', error);
+                showNotification('Error saving assessment', 'error');
+                return null;
+            }
+        }
+
+        // Delete an assessment from Firebase
+        async function deleteAssessmentFromFirebase(assessmentId) {
+            try {
+                await assessmentsCollection.doc(assessmentId).delete();
+                return true;
+            } catch (error) {
+                console.error('Error deleting assessment:', error);
+                showNotification('Error deleting assessment', 'error');
+                return false;
+            }
+        }
+
+        // Real-time listener for lessons
+        function setupLessonsListener() {
+            lessonsCollection.orderBy('createdAt', 'desc').onSnapshot(snapshot => {
+                lessons = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Update UI if on dashboard or lessons view
+                if (document.getElementById('dashboardView').style.display !== 'none') {
+                    renderDashboard();
+                }
+                if (document.getElementById('lessonsView').style.display !== 'none') {
+                    renderLessonsList();
+                }
+            }, error => {
+                console.error('Lessons listener error:', error);
+                updateConnectionStatus(false);
+            });
+        }
+
+        // Real-time listener for assessments
+        function setupAssessmentsListener() {
+            assessmentsCollection.orderBy('date', 'desc').onSnapshot(snapshot => {
+                assessmentHistory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Update UI if on dashboard or history view
+                if (document.getElementById('dashboardView').style.display !== 'none') {
+                    renderDashboard();
+                }
+                if (document.getElementById('historyView').style.display !== 'none') {
+                    renderHistoryList();
+                }
+            }, error => {
+                console.error('Assessments listener error:', error);
+                updateConnectionStatus(false);
+            });
+        }
+
+        // Update connection status indicator
+        function updateConnectionStatus(online) {
+            isOnline = online;
+            const status = document.getElementById('connectionStatus');
+            if (online) {
+                status.className = 'connection-status online';
+                status.innerHTML = '🟢 Connected';
+            } else {
+                status.className = 'connection-status offline';
+                status.innerHTML = '🔴 Offline';
+            }
+        }
+
+        // ============================================
+        // NOTIFICATION
+        // ============================================
+        function showNotification(msg, type = 'success') {
+            const n = document.getElementById('notification');
+            n.textContent = msg;
+            n.className = 'notification ' + type + ' show';
+            setTimeout(() => n.classList.remove('show'), 3000);
+        }
+
+        // ============================================
+        // VIEW MANAGEMENT
+        // ============================================
+        function showView(viewName) {
+            document.querySelectorAll('.view-container').forEach(v => v.style.display = 'none');
+            document.getElementById('initialScreens').style.display = 'none';
+            document.getElementById('testInterface').style.display = 'none';
+            document.getElementById('resultsInterface').style.display = 'none';
+            document.getElementById('topNav').style.display = 'flex';
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.view === viewName) link.classList.add('active');
+            });
+            switch(viewName) {
+                case 'dashboard': document.getElementById('dashboardView').style.display = 'block'; renderDashboard(); break;
+                case 'lessons': document.getElementById('lessonsView').style.display = 'block'; renderLessonsList(); break;
+                case 'history': document.getElementById('historyView').style.display = 'block'; renderHistoryList(); break;
+                case 'calendar': document.getElementById('calendarView').style.display = 'block'; break;
+                case 'test': document.getElementById('initialScreens').style.display = 'block'; document.getElementById('topNav').style.display = 'none'; break;
+            }
+        }
+
+        // ============================================
+        // DASHBOARD
+        // ============================================
+        function renderDashboard() {
+            const stats = {
+                totalLessons: lessons.length,
+                completedLessons: lessons.filter(l => l.status === 'completed').length,
+                totalAssessments: assessmentHistory.length,
+                avgScore: assessmentHistory.length > 0 ? Math.round(assessmentHistory.reduce((a, b) => a + (b.percentage || 0), 0) / assessmentHistory.length) : 0
+            };
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="stat-card" style="border-left-color:#3b82f6"><div class="icon">📅</div><div class="value" style="color:#3b82f6">${stats.totalLessons}</div><div class="label">Total Lessons</div></div>
+                <div class="stat-card" style="border-left-color:#10b981"><div class="icon">✅</div><div class="value" style="color:#10b981">${stats.completedLessons}</div><div class="label">Completed</div></div>
+                <div class="stat-card" style="border-left-color:#8b5cf6"><div class="icon">📊</div><div class="value" style="color:#8b5cf6">${stats.totalAssessments}</div><div class="label">Assessments</div></div>
+                <div class="stat-card" style="border-left-color:#f59e0b"><div class="icon">🎯</div><div class="value" style="color:#f59e0b">${stats.avgScore}%</div><div class="label">Avg Score</div></div>`;
+            
+            const upcoming = lessons.filter(l => l.status === 'scheduled').sort((a,b) => new Date(a.dateTime) - new Date(b.dateTime)).slice(0,5);
+            document.getElementById('upcomingLessons').innerHTML = upcoming.length === 0 
+                ? '<div class="empty-state"><div class="icon">📅</div><p>No upcoming lessons</p></div>'
+                : upcoming.map(l => `<div class="lesson-item"><div class="item-info"><div class="name">${escapeHtml(l.studentName)||'Unnamed'}</div><div class="details">${formatDate(l.dateTime)} • ${l.level||'TBD'}</div></div><button class="btn btn-primary" onclick="startLessonAssessment('${l.id}')" style="padding:8px 16px;font-size:14px">Start</button></div>`).join('');
+            
+            const recent = assessmentHistory.slice(0,5);
+            document.getElementById('recentAssessments').innerHTML = recent.length === 0
+                ? '<div class="empty-state"><div class="icon">📊</div><p>No assessments yet</p></div>'
+                : recent.map(a => `<div class="assessment-item"><div class="item-info"><div class="name">${escapeHtml(a.studentName)}</div><div class="details">${a.level} • ${formatDate(a.date?.toDate ? a.date.toDate() : a.date)}</div></div><div class="score-badge ${a.percentage>=60?'high':a.percentage>=40?'medium':'low'}">${a.percentage}%</div></div>`).join('');
+        }
+
+        // ============================================
+        // LESSONS MANAGEMENT
+        // ============================================
+        function toggleLessonForm() { const f = document.getElementById('lessonForm'); f.style.display = f.style.display === 'none' ? 'block' : 'none'; }
+        
+        async function createLesson() {
+            const name = document.getElementById('newStudentName').value.trim();
+            if (!name) { showNotification('Enter student name', 'error'); return; }
+            
+            const lessonData = {
+                studentName: name,
+                dateTime: document.getElementById('newDateTime').value || new Date().toISOString(),
+                level: document.getElementById('newLevel').value,
+                duration: parseInt(document.getElementById('newDuration').value) || 60,
+                notes: document.getElementById('newNotes').value.trim(),
+                status: 'scheduled',
+                assessmentId: null
+            };
+
+            showNotification('Saving to cloud...', 'success');
+            const docId = await addLessonToFirebase(lessonData);
+            
+            if (docId) {
+                // Clear form
+                document.getElementById('newStudentName').value = '';
+                document.getElementById('newDateTime').value = '';
+                document.getElementById('newLevel').value = '';
+                document.getElementById('newDuration').value = '60';
+                document.getElementById('newNotes').value = '';
+                toggleLessonForm();
+                showNotification('Lesson saved to cloud! ☁️');
+            }
+        }
+
+        async function deleteLesson(id) { 
+            if(confirm('Delete this lesson?')) { 
+                const success = await deleteLessonFromFirebase(id);
+                if (success) {
+                    showNotification('Lesson deleted');
+                }
+            } 
+        }
+        
+        function startLessonAssessment(id) {
+            currentLesson = lessons.find(l => l.id === id);
+            if (currentLesson && currentLesson.level) selectedLevel = currentLesson.level;
+            selectedVariant = 0; answers = {}; completedSections = new Set(); currentSection = 'Listening';
+            updateCurrentLessonBanner();
+            showView('test');
+            if (selectedLevel) { document.getElementById('levelSelection').classList.remove('active'); document.getElementById('variantSelection').classList.add('active'); }
+        }
+
+        function startQuickAssessment() {
+            currentLesson = null; selectedLevel = ''; selectedVariant = 0; answers = {}; completedSections = new Set(); currentSection = 'Listening';
+            document.getElementById('currentLessonBanner').style.display = 'none';
+            showView('test');
+            document.getElementById('levelSelection').classList.add('active');
+            document.getElementById('variantSelection').classList.remove('active');
+        }
+
+        function updateCurrentLessonBanner() {
+            if (currentLesson) {
+                document.getElementById('currentLessonBanner').style.display = 'flex';
+                document.getElementById('bannerStudentName').textContent = currentLesson.studentName;
+                document.getElementById('bannerLessonDetails').textContent = (currentLesson.level||'TBD') + ' • ' + formatDate(currentLesson.dateTime);
+                document.getElementById('testLessonBanner').style.display = 'flex';
+                document.getElementById('testBannerName').textContent = currentLesson.studentName;
+                document.getElementById('testBannerDetails').textContent = selectedLevel + ' • Variant ' + selectedVariant;
+            } else {
+                document.getElementById('currentLessonBanner').style.display = 'none';
+                document.getElementById('testLessonBanner').style.display = 'none';
+            }
+        }
+
+        function clearCurrentLesson() { currentLesson = null; document.getElementById('currentLessonBanner').style.display = 'none'; }
+        
+        function renderLessonsList() {
+            const sorted = [...lessons].sort((a,b) => {
+                const dateA = a.dateTime ? new Date(a.dateTime) : new Date(0);
+                const dateB = b.dateTime ? new Date(b.dateTime) : new Date(0);
+                return dateB - dateA;
+            });
+            document.getElementById('lessonsList').innerHTML = sorted.length === 0
+                ? '<div class="empty-state"><div class="icon">📅</div><p>No lessons yet. Create one or import from calendar!</p></div>'
+                : sorted.map(l => `<div class="lesson-card ${l.status}"><div><div style="font-size:18px;font-weight:600;color:#1e293b">${escapeHtml(l.studentName)||'Unnamed'}</div><div style="color:#64748b;margin-top:4px">${formatDateTime(l.dateTime)} • ${l.duration||60}min • ${l.level||'TBD'}</div>${l.notes?'<div style="color:#94a3b8;margin-top:4px;font-size:14px">'+escapeHtml(l.notes)+'</div>':''}<span style="display:inline-block;margin-top:8px;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;background:${l.status==='completed'?'#dcfce7':l.status==='cancelled'?'#fee2e2':'#dbeafe'};color:${l.status==='completed'?'#166534':l.status==='cancelled'?'#dc2626':'#1d4ed8'}">${l.status||'scheduled'}</span></div><div class="lesson-actions">${l.status==='scheduled'?'<button class="btn btn-primary" onclick="startLessonAssessment(\''+l.id+'\')">Start</button>':''}<button class="btn btn-danger" onclick="deleteLesson('${l.id}')">Delete</button></div></div>`).join('');
+        }
+
+        // ============================================
+        // HISTORY & DATABASE SAVE
+        // ============================================
+        function renderHistoryList() {
+            document.getElementById('historyList').innerHTML = assessmentHistory.length === 0
+                ? '<div class="empty-state" style="background:white;border-radius:16px;padding:60px"><div class="icon">📊</div><p>No assessments yet</p></div>'
+                : assessmentHistory.map(a => {
+                    const dateStr = a.date?.toDate ? formatDateTime(a.date.toDate()) : formatDateTime(a.date);
+                    return `<div style="background:white;border-radius:16px;padding:24px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.08)"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:20px;font-weight:600;color:#1e293b">${escapeHtml(a.studentName)}</div><div style="color:#64748b;margin-top:4px">${a.level} (V${a.variant}) • ${dateStr}</div></div><div style="text-align:right"><div style="font-size:32px;font-weight:700;color:${a.percentage>=80?'#10b981':a.percentage>=60?'#f59e0b':'#ef4444'}">${a.percentage}%</div><div style="color:#64748b;font-size:14px">${a.totalScore}/${a.maxScore}</div></div></div><div style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap">${Object.entries(a.scores||{}).map(([s,d])=>'<div style="padding:8px 16px;background:'+(d.percentage>=60?'#dcfce7':'#fef3c7')+';border-radius:20px;font-size:14px">'+s+': '+d.score+'/'+d.total+'</div>').join('')}</div>${a.recommendations?.length?'<div style="margin-top:16px;padding:12px;background:#fef3c7;border-radius:8px"><div style="font-weight:600;color:#92400e;margin-bottom:8px">Recommendations:</div>'+a.recommendations.map(r=>'<div style="color:#92400e;font-size:14px">• '+r+'</div>').join('')+'</div>':''}<button class="btn btn-danger" onclick="deleteAssessment('${a.id}')" style="margin-top:16px">Delete</button></div>`;
+                }).join('');
+        }
+
+        async function deleteAssessment(id) { 
+            if(confirm('Delete this assessment?')) { 
+                const success = await deleteAssessmentFromFirebase(id);
+                if (success) {
+                    showNotification('Assessment deleted');
+                }
+            } 
+        }
+        
+        async function saveResultToDatabase() {
+            const name = document.getElementById('studentName').value.trim() || (currentLesson ? currentLesson.studentName : 'Unknown');
+            const notes = document.getElementById('testDescription').value.trim();
+            const results = calculateAllResults();
+            
+            const assessmentData = {
+                lessonId: currentLesson?.id || null,
+                studentName: name,
+                level: selectedLevel,
+                variant: selectedVariant,
+                scores: results.sectionScores,
+                totalScore: results.totalScore,
+                maxScore: results.maxScore,
+                percentage: results.percentage,
+                recommendations: results.recommendations,
+                notes
+            };
+
+            showNotification('Saving to cloud...', 'success');
+            const docId = await addAssessmentToFirebase(assessmentData);
+            
+            if (docId && currentLesson) {
+                await updateLessonInFirebase(currentLesson.id, { 
+                    status: 'completed', 
+                    assessmentId: docId 
+                });
+            }
+            
+            if (docId) {
+                showNotification('Assessment saved to cloud! ☁️');
+            }
+        }
+
+        function calculateAllResults() {
+            let total = 0, max = 0;
+            const sectionScores = {};
+            const recs = [];
+            ['Listening', 'Reading', 'Grammar'].forEach(section => {
+                const result = calculateSectionScore(section);
+                sectionScores[section] = { score: result.score, total: result.total, percentage: result.percentage };
+                total += result.score;
+                max += result.total;
+                if (result.percentage < 60) recs.push('Focus on ' + section + ' (' + result.percentage + '%)');
+            });
+            return { sectionScores, totalScore: total, maxScore: max, percentage: max > 0 ? Math.round((total/max)*100) : 0, recommendations: recs };
+        }
+
+        // ============================================
+        // CALENDAR ICS PARSER
+        // ============================================
+        function parseICSContent() {
+            const ics = document.getElementById('icsContent').value.trim();
+            if (!ics) { showNotification('Paste ICS content first', 'error'); return; }
+            const events = parseICS(ics);
+            if (events.length === 0) { showNotification('No events found', 'error'); return; }
+            calendarEvents = events;
+            renderCalendarEvents();
+            showNotification('Found ' + events.length + ' events!');
+        }
+
+        function parseICS(text) {
+            const events = [];
+            const lines = text.split(/\r?\n/);
+            let evt = null, inEvent = false;
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                while (i + 1 < lines.length && /^[ \t]/.test(lines[i + 1])) { i++; line += lines[i].substring(1); }
+                if (line === 'BEGIN:VEVENT') { inEvent = true; evt = {}; }
+                else if (line === 'END:VEVENT' && evt) {
+                    inEvent = false;
+                    if (evt.summary && evt.dtstart) {
+                        events.push({ id: evt.uid || Date.now().toString() + Math.random(), title: evt.summary, start: parseICSDate(evt.dtstart), end: evt.dtend ? parseICSDate(evt.dtend) : null, description: evt.description || '', location: evt.location || '' });
+                    }
+                    evt = null;
+                } else if (inEvent && evt) {
+                    const ci = line.indexOf(':');
+                    if (ci > 0) { let k = line.substring(0, ci).split(';')[0].toLowerCase(); let v = line.substring(ci + 1).replace(/\\n/g, '\n').replace(/\\,/g, ',').replace(/\\\\/g, '\\'); evt[k] = v; }
+                }
+            }
+            return events;
+        }
+
+        function parseICSDate(d) {
+            const c = d.replace(/[^\dT]/g, '');
+            if (c.length >= 15) { return new Date(c.substring(0,4)+'-'+c.substring(4,6)+'-'+c.substring(6,8)+'T'+c.substring(9,11)+':'+c.substring(11,13)+':'+c.substring(13,15)+(d.endsWith('Z')?'Z':'')); }
+            else if (c.length >= 8) { return new Date(c.substring(0,4)+'-'+c.substring(4,6)+'-'+c.substring(6,8)); }
+            return new Date();
+        }
+
+        function renderCalendarEvents() {
+            document.getElementById('parsedEvents').style.display = 'block';
+            document.getElementById('eventsCount').textContent = 'Found ' + calendarEvents.length + ' Events';
+            document.getElementById('eventsList').innerHTML = calendarEvents.map(e => `<div class="event-card"><div><div style="font-weight:600;color:#1e293b">${escapeHtml(e.title)}</div><div style="font-size:14px;color:#64748b">${e.start.toLocaleString()}</div></div><button class="btn btn-primary" onclick="createLessonFromEvent('${e.id}')" style="padding:8px 16px;font-size:14px">Add</button></div>`).join('');
+        }
+
+        async function createLessonFromEvent(id) {
+            const e = calendarEvents.find(ev => ev.id === id);
+            if (!e) return;
+            let name = e.title;
+            [/lesson with (.+)/i, /class with (.+)/i, /(.+) - lesson/i, /(.+) lesson/i].forEach(p => { const m = e.title.match(p); if (m) name = m[1].trim(); });
+            let dur = 60; if (e.end && e.start) dur = Math.round((e.end - e.start) / 60000);
+            let lvl = ''; const lm = (e.title + ' ' + e.description).match(/\b(A0|A1|A2|B1|B2|C1|C2|IELTS)\b/i); if (lm) { lvl = lm[1].toUpperCase(); if (lvl === 'B1' || lvl === 'B2') lvl = 'B1/B2'; }
+            
+            const lessonData = {
+                studentName: name,
+                dateTime: e.start.toISOString(),
+                level: lvl,
+                duration: dur,
+                notes: e.description || e.location || '',
+                status: 'scheduled',
+                assessmentId: null
+            };
+
+            showNotification('Saving to cloud...', 'success');
+            const docId = await addLessonToFirebase(lessonData);
+            
+            if (docId) {
+                calendarEvents = calendarEvents.filter(ev => ev.id !== id);
+                renderCalendarEvents();
+                if (calendarEvents.length === 0) document.getElementById('parsedEvents').style.display = 'none';
+                showNotification('Lesson saved to cloud! ☁️');
+            }
+        }
+
+        async function createAllLessonsFromEvents() {
+            showNotification('Saving all to cloud...', 'success');
+            let count = 0;
+            
+            for (const e of calendarEvents) {
+                let name = e.title;
+                [/lesson with (.+)/i, /class with (.+)/i, /(.+) - lesson/i, /(.+) lesson/i].forEach(p => { const m = e.title.match(p); if (m) name = m[1].trim(); });
+                let dur = 60; if (e.end && e.start) dur = Math.round((e.end - e.start) / 60000);
+                let lvl = ''; const lm = (e.title + ' ' + e.description).match(/\b(A0|A1|A2|B1|B2|C1|C2|IELTS)\b/i); if (lm) { lvl = lm[1].toUpperCase(); if (lvl === 'B1' || lvl === 'B2') lvl = 'B1/B2'; }
+                
+                const docId = await addLessonToFirebase({
+                    studentName: name,
+                    dateTime: e.start.toISOString(),
+                    level: lvl,
+                    duration: dur,
+                    notes: e.description || '',
+                    status: 'scheduled',
+                    assessmentId: null
+                });
+                
+                if (docId) count++;
+            }
+            
+            showNotification('Created ' + count + ' lessons in cloud! ☁️');
+            calendarEvents = [];
+            document.getElementById('parsedEvents').style.display = 'none';
+            document.getElementById('icsContent').value = '';
+        }
+
+        // ============================================
+        // UTILITIES
+        // ============================================
+        function escapeHtml(t) { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+        function formatDate(d) { if (!d) return 'TBD'; try { return new Date(d).toLocaleDateString(); } catch(e) { return 'TBD'; } }
+        function formatDateTime(d) { if (!d) return 'TBD'; try { return new Date(d).toLocaleString(); } catch(e) { return 'TBD'; } }
+
+        // ============================================
+        // TEST DATA
+        // ============================================
         const testData = {
             A0: {
                 Listening: {
@@ -1183,7 +1302,6 @@
                 ]
             }
         };
-
         function selectLevel(level) {
             selectedLevel = level;
             document.getElementById('levelSelection').classList.remove('active');
@@ -2329,6 +2447,48 @@
                 }, 3000);
             }
         }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Set up real-time listeners
+                setupLessonsListener();
+                setupAssessmentsListener();
+                
+                // Initial load
+                await Promise.all([
+                    loadLessonsFromFirebase(),
+                    loadAssessmentsFromFirebase()
+                ]);
+                
+                updateConnectionStatus(true);
+                
+                // Hide loading overlay
+                document.getElementById('loadingOverlay').style.display = 'none';
+                
+                // Show dashboard
+                showView('dashboard');
+                
+                console.log('App initialized with Firebase');
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('loadingOverlay').innerHTML = `
+                    <div style="text-align:center">
+                        <div style="font-size:48px;margin-bottom:16px">⚠️</div>
+                        <div style="color:#dc2626;font-size:18px;margin-bottom:8px">Connection Error</div>
+                        <div style="color:#64748b">Please check your internet connection and refresh the page.</div>
+                        <button onclick="location.reload()" style="margin-top:20px;padding:12px 24px;background:#3b82f6;color:white;border:none;border-radius:8px;cursor:pointer">Retry</button>
+                    </div>
+                `;
+                updateConnectionStatus(false);
+            }
+        });
+
+        // Monitor online/offline status
+        window.addEventListener('online', () => updateConnectionStatus(true));
+        window.addEventListener('offline', () => updateConnectionStatus(false));
     </script>
 </body>
 </html>
