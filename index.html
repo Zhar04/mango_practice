@@ -2778,7 +2778,7 @@
         // ============================================
         
         async function callGeminiAPI(prompt) {
-            if (!GEMINI_API_KEY || GEMINI_API_KEY === 'AIzaSyCHSClegzeasYPPzhbM69NSB1ZwZm0aTKA') {
+            if (!GEMINI_API_KEY) {
                 showNotification('Please add your Gemini API key in the code', 'error');
                 return null;
             }
